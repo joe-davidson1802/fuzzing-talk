@@ -1,0 +1,197 @@
+# What the Fuzz
+
+Fuzz testing with Go
+
+Joe Davidson
+
+
+## Introduction
+
+## Questions
+
+- What is it, anyway?
+- Why should I do it?
+- How does it work with Go?
+- How do I do it?
+
+## What is Go?
+
+- Multi-purpose.
+- Open source.
+- Maintained by Google.
+- "Simple, efficient and fun."
+
+.image ./gopher.png 350 _
+
+## What is Fuzzing?
+
+- A form of testing.
+- Currently used largely for security testing.
+- Generates semi-random test data.
+- Created by Prof. Barton Miller.
+
+: Story - dialup connection to UNIX system, during a storm. Interfered with inputs and resulted in a crash. Tried to repro with a tool
+
+## Why do it?
+
+Security:
+
+- Discover DOS vulnerabilities.
+
+Development:
+
+- Does your code throw exceptions at the wrong times?
+- In cases of a success is the response valid?
+
+: testing cases a single person couldn't test
+
+## Security Tools
+
+- Radamsa
+- Honggfuzz
+- boofuzz
+
+: Black box, cli and http. Find vulnerabilities and bugs.
+
+## Process
+
+- Generation of inputs.
+- Delivery of inputs.
+- Assertion of behaviour.
+
+## Examples
+
+Radamsa:
+
+<br>
+
+```
+ $ echo "aaa" | radamsa
+ aaaa
+ $ echo "aaa" | radamsa
+ ːaaa
+```
+
+: have to hand crank delivery and assertion, very black box
+
+## Coverage Guided Fuzz Testing
+
+- Analyzes your code during tests.
+- Finds "interesting" inputs.
+- It's smart as fuzz.
+
+: generation, delivery plus bonus feature
+
+## Examples
+
+- C/C++: libFuzzer
+- Go: go-fuzz
+- Rust: cargo-fuzz
+- JavaScript: jsfuzz
+- Swift, Java, Python
+
+: in comes go1.18
+
+## Built in Go Fuzzer
+
+- Part of the standard library.
+- Very similar to the syntax of a Go unit test.
+
+## Let's Go
+
+.code ./bytereverse/fuzz.go  /^func Reverse/,/^}/
+.play ./bytereverse/fuzz.go  /^func main/,/^}/
+
+## Anatomy of a Go Test
+
+<br>
+
+.code ./bytereverse/fuzz_test.go  /^func TestReverse/,/^}/
+
+## Now Fuzz
+
+<br>
+
+.code ./bytereverse/fuzz_test.go  /^func FuzzReverse/,/^}/
+
+## Comparative Fuzz Tests
+
+<br>
+
+.code ./bytereverse/fuzz_test.go  /^func FuzzReverseTwice/,/^}/
+
+## Start Fuzzing
+
+<br>
+
+```
+~ go test -fuzz FuzzReverse
+fuzz: elapsed: 0s, gathering baseline coverage: 0/3 completed
+fuzz: elapsed: 0s, gathering baseline coverage: 3/3 completed, now fuzzing with 8 workers
+fuzz: elapsed: 3s, execs: 325017 (108336/sec), new interesting: 11 (total: 202)
+fuzz: elapsed: 6s, execs: 680218 (118402/sec), new interesting: 12 (total: 203)
+fuzz: elapsed: 9s, execs: 1039901 (119895/sec), new interesting: 19 (total: 210)
+fuzz: elapsed: 12s, execs: 1386684 (115594/sec), new interesting: 21 (total: 212)
+PASS
+ok      foo 12.692s
+```
+
+## If it Fails
+
+<br>
+
+```
+$ go test -fuzz=FuzzReverse
+fuzz: elapsed: 0s, gathering baseline coverage: 0/3 completed
+fuzz: elapsed: 0s, gathering baseline coverage: 3/3 completed, now fuzzing with 8 workers
+fuzz: minimizing 38-byte failing input file...
+--- FAIL: FuzzReverse (0.01s)
+    --- FAIL: FuzzReverse (0.00s)
+        reverse_test.go:20: Reverse produced invalid UTF-8 string "\x9c\xdd"
+
+    Failing input written to testdata/fuzz/FuzzReverse/af69258a12129d6cbba438df5d5f25ba0ec050461c116f777e77ea7c9a0d217a
+    To re-run:
+    go test -run=FuzzReverse/af69258a12129d6cbba438df5d5f25ba0ec050461c116f777e77ea7c9a0d217a
+FAIL
+exit status 1
+FAIL    example/fuzz  0.030s
+```
+
+## Diagnose the Issue
+
+<br>
+
+```
+$ go test ./...
+--- FAIL: FuzzReverse (0.00s)
+    --- FAIL: FuzzReverse/af69258a12129d6cbba438df5d5f25ba0ec050461c116f777e77ea7c9a0d217a (0.00s)
+        reverse_test.go:20: Reverse produced invalid string
+FAIL
+exit status 1
+FAIL    example/fuzz  0.016s
+```
+
+## Fix the Issue
+
+<br>
+
+.code ./runereverse/fuzz.go  /^func Reverse/,/^}/
+.play ./runereverse/fuzz.go  /^func main/,/^}/
+
+## Fuzz Again
+
+<br>
+
+```
+~ go test -fuzz FuzzReverse
+fuzz: elapsed: 0s, gathering baseline coverage: 0/3 completed
+fuzz: elapsed: 0s, gathering baseline coverage: 3/3 completed, now fuzzing with 8 workers
+fuzz: elapsed: 3s, execs: 325017 (108336/sec), new interesting: 11 (total: 202)
+fuzz: elapsed: 6s, execs: 680218 (118402/sec), new interesting: 12 (total: 203)
+fuzz: elapsed: 9s, execs: 1039901 (119895/sec), new interesting: 19 (total: 210)
+fuzz: elapsed: 12s, execs: 1386684 (115594/sec), new interesting: 21 (total: 212)
+PASS
+ok      foo 12.692s
+```
+
+## Questions?
